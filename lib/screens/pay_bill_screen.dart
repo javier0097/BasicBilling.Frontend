@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../blocs/pay_bill/pay_bill_bloc.dart';
 import '../blocs/pay_bill/pay_bill_event.dart';
 import '../blocs/pay_bill/pay_bill_state.dart';
@@ -54,7 +55,13 @@ class _PayBillViewState extends State<_PayBillView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pay Bill')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/'),
+        ),
+        title: const Text('Pay Bill'),
+      ),
       body: BlocConsumer<PayBillBloc, PayBillState>(
         listener: (context, state) {
           if (state is PayBillSuccess) {

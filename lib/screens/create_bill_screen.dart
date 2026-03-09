@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../blocs/create_bill/create_bill_bloc.dart';
 import '../blocs/create_bill/create_bill_event.dart';
 import '../blocs/create_bill/create_bill_state.dart';
@@ -57,7 +58,13 @@ class _CreateBillViewState extends State<_CreateBillView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Bill')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/'),
+        ),
+        title: const Text('Create Bill'),
+      ),
       body: BlocConsumer<CreateBillBloc, CreateBillState>(
         listener: (context, state) {
           if (state is CreateBillSuccess) {

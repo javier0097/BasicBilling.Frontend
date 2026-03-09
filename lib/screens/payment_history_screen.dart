@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../blocs/payment_history/payment_history_bloc.dart';
 import '../blocs/payment_history/payment_history_event.dart';
@@ -74,7 +75,13 @@ class _PaymentHistoryViewState extends State<_PaymentHistoryView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Payment History')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/'),
+        ),
+        title: const Text('Payment History'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Center(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../blocs/pending_bills/pending_bills_bloc.dart';
 import '../blocs/pending_bills/pending_bills_event.dart';
 import '../blocs/pending_bills/pending_bills_state.dart';
@@ -65,7 +66,13 @@ class _PendingBillsViewState extends State<_PendingBillsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pending Bills')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/'),
+        ),
+        title: const Text('Pending Bills'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Center(
