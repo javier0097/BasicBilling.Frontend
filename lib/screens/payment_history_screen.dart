@@ -131,45 +131,57 @@ class _PaymentHistoryViewState extends State<_PaymentHistoryView> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _filterService,
-                        decoration:
-                            const InputDecoration(labelText: 'Filter by service'),
-                        items: _serviceFilterOptions.entries
-                            .map((e) => DropdownMenuItem(
-                                value: e.key, child: Text(e.value)))
-                            .toList(),
-                        onChanged: (v) {
-                          setState(() => _filterService = v ?? '');
-                          if (_clientIdController.text.trim().isNotEmpty) {
-                            _search();
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _orderBy,
-                        decoration:
-                            const InputDecoration(labelText: 'Sort by'),
-                        items: _orderOptions.entries
-                            .map((e) => DropdownMenuItem(
-                                value: e.key, child: Text(e.value)))
-                            .toList(),
-                        onChanged: (v) {
-                          setState(() =>
-                              _orderBy = v ?? '\$orderby=paymentDate desc');
-                          if (_clientIdController.text.trim().isNotEmpty) {
-                            _search();
-                          }
-                        },
-                      ),
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final filterDropdown = DropdownButtonFormField<String>(
+                      initialValue: _filterService,
+                      decoration: const InputDecoration(
+                          labelText: 'Filter by service'),
+                      items: _serviceFilterOptions.entries
+                          .map((e) => DropdownMenuItem(
+                              value: e.key, child: Text(e.value)))
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() => _filterService = v ?? '');
+                        if (_clientIdController.text.trim().isNotEmpty) {
+                          _search();
+                        }
+                      },
+                    );
+                    final sortDropdown = DropdownButtonFormField<String>(
+                      initialValue: _orderBy,
+                      decoration:
+                          const InputDecoration(labelText: 'Sort by'),
+                      items: _orderOptions.entries
+                          .map((e) => DropdownMenuItem(
+                              value: e.key, child: Text(e.value)))
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() =>
+                            _orderBy = v ?? '\$orderby=paymentDate desc');
+                        if (_clientIdController.text.trim().isNotEmpty) {
+                          _search();
+                        }
+                      },
+                    );
+
+                    if (constraints.maxWidth > 400) {
+                      return Row(
+                        children: [
+                          Expanded(child: filterDropdown),
+                          const SizedBox(width: 12),
+                          Expanded(child: sortDropdown),
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        filterDropdown,
+                        const SizedBox(height: 12),
+                        sortDropdown,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 Expanded(
