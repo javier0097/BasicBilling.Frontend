@@ -54,19 +54,20 @@ Displays chronological payment history for a given client:
 # Get dependencies
 flutter pub get
 
-# Build for web (production)
+# Build for web
 flutter build web
 ```
 
-The production build output will be in `build/web/`.
+The build output will be in `build/web/`.
 
 ## How to Run
 
 ```bash
-# Run in development mode (opens in default browser)
-flutter run -d chrome
+# Run in development mode
+flutter run
 
-# Or specify a browser
+# Or specify a specific browser
+flutter run -d chrome
 flutter run -d edge
 ```
 
