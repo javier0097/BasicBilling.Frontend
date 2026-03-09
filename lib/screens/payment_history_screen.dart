@@ -31,6 +31,7 @@ class _PaymentHistoryView extends StatefulWidget {
 class _PaymentHistoryViewState extends State<_PaymentHistoryView> {
   final _clientIdController = TextEditingController();
   String _orderBy = '\$orderby=paymentDate desc';
+  String _filterService = '';
 
   static const _orderOptions = {
     '\$orderby=paymentDate desc': 'Date (newest first)',
@@ -39,10 +40,29 @@ class _PaymentHistoryViewState extends State<_PaymentHistoryView> {
     '\$orderby=amount desc': 'Amount (high to low)',
   };
 
+  static const _serviceFilterOptions = {
+    '': 'All services',
+    'Water': 'Water',
+    'Electricity': 'Electricity',
+    'Sewer': 'Sewer',
+  };
+
   @override
   void dispose() {
     _clientIdController.dispose();
     super.dispose();
+  }
+
+  String _buildODataQuery() {
+    final parts = <String>[];
+
+    if (_filterService.isNotEmpty) {
+      parts.add("\$filter=serviceType eq '$_filterService'");
+    }
+
+    parts.add(_orderBy);
+
+    return parts.join('&');
   }
 
   void _search() {
@@ -59,7 +79,7 @@ class _PaymentHistoryViewState extends State<_PaymentHistoryView> {
 
     context.read<PaymentHistoryBloc>().add(PaymentHistoryRequested(
           clientId: int.parse(text),
-          oDataQuery: _orderBy,
+          oDataQuery: _buildODataQuery(),
         ));
   }
 
@@ -111,17 +131,45 @@ class _PaymentHistoryViewState extends State<_PaymentHistoryView> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: _orderBy,
-                  decoration: const InputDecoration(labelText: 'Sort by'),
-                  items: _orderOptions.entries
-                      .map((e) =>
-                          DropdownMenuItem(value: e.key, child: Text(e.value)))
-                      .toList(),
-                  onChanged: (v) {
-                    setState(() => _orderBy = v ?? '\$orderby=paymentDate desc');
-                    if (_clientIdController.text.trim().isNotEmpty) _search();
-                  },
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _filterService,
+                        decoration:
+                            const InputDecoration(labelText: 'Filter by service'),
+                        items: _serviceFilterOptions.entries
+                            .map((e) => DropdownMenuItem(
+                                value: e.key, child: Text(e.value)))
+                            .toList(),
+                        onChanged: (v) {
+                          setState(() => _filterService = v ?? '');
+                          if (_clientIdController.text.trim().isNotEmpty) {
+                            _search();
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _orderBy,
+                        decoration:
+                            const InputDecoration(labelText: 'Sort by'),
+                        items: _orderOptions.entries
+                            .map((e) => DropdownMenuItem(
+                                value: e.key, child: Text(e.value)))
+                            .toList(),
+                        onChanged: (v) {
+                          setState(() =>
+                              _orderBy = v ?? '\$orderby=paymentDate desc');
+                          if (_clientIdController.text.trim().isNotEmpty) {
+                            _search();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Expanded(
@@ -134,7 +182,8 @@ class _PaymentHistoryViewState extends State<_PaymentHistoryView> {
                         );
                       }
                       if (state is PaymentHistoryLoading) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(
+                            child: CircularProgressIndicator());
                       }
                       if (state is PaymentHistoryFailure) {
                         return Center(
