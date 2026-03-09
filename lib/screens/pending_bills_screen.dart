@@ -1,20 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../blocs/pay_bill/pay_bill_bloc.dart';
+import '../blocs/pay_bill/pay_bill_event.dart';
+import '../blocs/pay_bill/pay_bill_state.dart';
 import '../blocs/pending_bills/pending_bills_bloc.dart';
 import '../blocs/pending_bills/pending_bills_event.dart';
 import '../blocs/pending_bills/pending_bills_state.dart';
+import '../models/bill.dart';
 import '../repositories/bill_repository.dart';
+import '../repositories/payment_repository.dart';
 
 class PendingBillsScreen extends StatelessWidget {
   const PendingBillsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => PendingBillsBloc(
-        billRepository: context.read<BillRepository>(),
-      ),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) => PendingBillsBloc(
+            billRepository: context.read<BillRepository>(),
+          ),
+        ),
+        BlocProvider(
+          create: (context) => PayBillBloc(
+            paymentRepository: context.read<PaymentRepository>(),
+          ),
+        ),
+      ],
       child: const _PendingBillsView(),
     );
   }
@@ -63,6 +77,14 @@ class _PendingBillsViewState extends State<_PendingBillsView> {
         ));
   }
 
+  void _payBill(Bill bill) {
+    context.read<PayBillBloc>().add(PayBillSubmitted(
+          clientId: bill.clientId,
+          serviceType: bill.serviceType,
+          period: bill.period,
+        ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,101 +95,134 @@ class _PendingBillsViewState extends State<_PendingBillsView> {
         ),
         title: const Text('Pending Bills'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _clientIdController,
-                        decoration: const InputDecoration(
-                          labelText: 'Client ID',
-                          hintText: 'Enter client ID',
+      body: BlocListener<PayBillBloc, PayBillState>(
+        listener: (context, state) {
+          if (state is PayBillSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'Payment processed - \$${state.payment.amount.toStringAsFixed(2)}'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _search();
+          } else if (state is PayBillFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _clientIdController,
+                          decoration: const InputDecoration(
+                            labelText: 'Client ID',
+                            hintText: 'Enter client ID',
+                          ),
+                          keyboardType: TextInputType.number,
+                          onSubmitted: (_) => _search(),
                         ),
-                        keyboardType: TextInputType.number,
-                        onSubmitted: (_) => _search(),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: _search,
-                      icon: const Icon(Icons.search),
-                      label: const Text('Search'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: _orderBy,
-                  decoration: const InputDecoration(labelText: 'Sort by'),
-                  items: _orderOptions.entries
-                      .map((e) =>
-                          DropdownMenuItem(value: e.key, child: Text(e.value)))
-                      .toList(),
-                  onChanged: (v) {
-                    setState(() => _orderBy = v ?? '');
-                    if (_clientIdController.text.trim().isNotEmpty) _search();
-                  },
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: BlocBuilder<PendingBillsBloc, PendingBillsState>(
-                    builder: (context, state) {
-                      if (state is PendingBillsInitial) {
-                        return const Center(
-                          child: Text('Enter a Client ID to search'),
-                        );
+                      const SizedBox(width: 12),
+                      FilledButton.icon(
+                        onPressed: _search,
+                        icon: const Icon(Icons.search),
+                        label: const Text('Search'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _orderBy,
+                    decoration: const InputDecoration(labelText: 'Sort by'),
+                    items: _orderOptions.entries
+                        .map((e) => DropdownMenuItem(
+                            value: e.key, child: Text(e.value)))
+                        .toList(),
+                    onChanged: (v) {
+                      setState(() => _orderBy = v ?? '');
+                      if (_clientIdController.text.trim().isNotEmpty) {
+                        _search();
                       }
-                      if (state is PendingBillsLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (state is PendingBillsFailure) {
-                        return Center(
-                          child: Text(state.message,
-                              style: const TextStyle(color: Colors.red)),
-                        );
-                      }
-                      if (state is PendingBillsLoaded) {
-                        if (state.bills.isEmpty) {
-                          return const Center(
-                              child: Text('No pending bills found'));
-                        }
-                        return ListView.builder(
-                          itemCount: state.bills.length,
-                          itemBuilder: (context, index) {
-                            final bill = state.bills[index];
-                            return Card(
-                              child: ListTile(
-                                leading: Icon(_serviceIcon(bill.serviceType)),
-                                title: Text(
-                                    '${bill.serviceType} - ${bill.period}'),
-                                subtitle: Text('Bill #${bill.id}'),
-                                trailing: Text(
-                                  '\$${bill.amount.toStringAsFixed(2)}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      }
-                      return const SizedBox.shrink();
                     },
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: BlocBuilder<PendingBillsBloc, PendingBillsState>(
+                      builder: (context, state) {
+                        if (state is PendingBillsInitial) {
+                          return const Center(
+                            child: Text('Enter a Client ID to search'),
+                          );
+                        }
+                        if (state is PendingBillsLoading) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+                        if (state is PendingBillsFailure) {
+                          return Center(
+                            child: Text(state.message,
+                                style: const TextStyle(color: Colors.red)),
+                          );
+                        }
+                        if (state is PendingBillsLoaded) {
+                          if (state.bills.isEmpty) {
+                            return const Center(
+                                child: Text('No pending bills found'));
+                          }
+                          return BlocBuilder<PayBillBloc, PayBillState>(
+                            builder: (context, payState) {
+                              return ListView.builder(
+                                itemCount: state.bills.length,
+                                itemBuilder: (context, index) {
+                                  final bill = state.bills[index];
+                                  return Card(
+                                    child: ListTile(
+                                      leading: Icon(
+                                          _serviceIcon(bill.serviceType)),
+                                      title: Text(
+                                          '${bill.serviceType} - ${bill.period}'),
+                                      subtitle: Text(
+                                          'Bill #${bill.id} - \$${bill.amount.toStringAsFixed(2)}'),
+                                      trailing: FilledButton.tonal(
+                                        onPressed: payState is PayBillLoading
+                                            ? null
+                                            : () => _payBill(bill),
+                                        child: payState is PayBillLoading
+                                            ? const SizedBox(
+                                                height: 16,
+                                                width: 16,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2),
+                                              )
+                                            : const Text('Pay'),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
